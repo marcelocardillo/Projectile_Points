@@ -1,0 +1,465 @@
+#Script of: Late Pleistocene-Early Holocene Fishtail points from Southernmost Patagonia (South America): an estimation of use life using #experimental data and survival curve models 
+
+#contact:marcelo.cardillo@gmail.com
+
+###Packages
+
+library(MASS)#Base
+library(Hmisc)#correlation matrix
+library(survminer)#Survival curves
+library(cmprsk)#Box Cox Model
+library(survival)#Survival Curves
+library(ggplot2)#plot
+
+
+ppdat<-read.table("CDPExp.txt",T, row.names=1)#raw data matrix 
+head(ppdat)
+
+--------------------------------------------------------------------------------------------------------------------------------
+## Variable names
+#LgMaxIni, Initial maximum longitude; WidMaxIn, Maximum initial width; Thick, Maximum thickness; LgBladbIni, Initial blade longitude;
+#WidNeck, Neck width;  LgBladFin, Final blade longitude;   WeigthSist, Dart weight (hafted point + spear);  WidMaxFin Final maximum width
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+#############Descriptive statistics&correlation###############
+
+
+cormatrix <- rcorr(as.matrix(ppdat[ c(3:11,14)])) #correlation between cuantitative variables
+
+
+cormatrix
+              Shots Resharpenings LgMaxIni WidMaxIn Thick LgBladbIni WidNeck LgBladFin WeigthSist WidMaxFin
+Shots          1.00          0.96     0.51     0.79  0.46       0.54    0.68     -0.38       0.53      0.54
+Resharpenings  0.96          1.00     0.52     0.81  0.44       0.55    0.67     -0.38       0.54      0.54
+LgMaxIni       0.51          0.52     1.00     0.76  0.70       0.99    0.47      0.55       0.75      0.71
+WidMaxIn       0.79          0.81     0.76     1.00  0.58       0.76    0.63     -0.01       0.77      0.91
+Thick          0.46          0.44     0.70     0.58  1.00       0.72    0.72      0.20       0.80      0.54
+LgBladbIni     0.54          0.55     0.99     0.76  0.72       1.00    0.46      0.50       0.70      0.68
+WidNeck        0.68          0.67     0.47     0.63  0.72       0.46    1.00     -0.16       0.69      0.50
+LgBladFin     -0.38         -0.38     0.55    -0.01  0.20       0.50   -0.16      1.00       0.21      0.13
+WeigthSist     0.53          0.54     0.75     0.77  0.80       0.70    0.69      0.21       1.00      0.78
+WidMaxFin      0.54          0.54     0.71     0.91  0.54       0.68    0.50      0.13       0.78      1.00
+
+# Probabilities
+
+P
+              Shots  Resharpenings LgMaxIni WidMaxIn Thick  LgBladbIni WidNeck LgBladFin WeigthSist WidMaxFin
+Shots                0.0000        0.1089   0.0038   0.1543 0.0874     0.0225  0.2528    0.0939     0.0867   
+Resharpenings 0.0000               0.0976   0.0023   0.1736 0.0802     0.0253  0.2468    0.0894     0.0860   
+LgMaxIni      0.1089 0.0976                 0.0068   0.0169 0.0000     0.1468  0.0826    0.0085     0.0146   
+WidMaxIn      0.0038 0.0023        0.0068            0.0596 0.0069     0.0367  0.9779    0.0055     0.0001   
+Thick         0.1543 0.1736        0.0169   0.0596          0.0116     0.0121  0.5624    0.0032     0.0839   
+LgBladbIni    0.0874 0.0802        0.0000   0.0069   0.0116            0.1547  0.1160    0.0173     0.0202   
+WidNeck       0.0225 0.0253        0.1468   0.0367   0.0121 0.1547             0.6335    0.0192     0.1193   
+LgBladFin     0.2528 0.2468        0.0826   0.9779   0.5624 0.1160     0.6335            0.5343     0.7010   
+WeigthSist    0.0939 0.0894        0.0085   0.0055   0.0032 0.0173     0.0192  0.5343               0.0049   
+WidMaxFin     0.0867 0.0860        0.0146   0.0001   0.0839 0.0202     0.1193  0.7010    0.0049 
+
+###################boxplot cuantitative variables (not shown)###################
+
+par(mfrow=c(2,5))
+boxplot(ppdat[3], main="Shots")
+boxplot(ppdat[4], main="Resharpenings")
+boxplot(ppdat[5], main="LongMaxIni")
+boxplot(ppdat[6], main="WidMaxIn")
+boxplot(ppdat[7], main="Thickness")
+boxplot(ppdat[8],main="LgBladbIni")
+boxplot(ppdat[9],main="WidNeck")
+boxplot(ppdat[11], main="WeigthSist")
+boxplot(ppdat[14], main="WidMaxFin",col="light blue")
+boxplot(ppdat[10], main="LgBladFin", col="light blue")
+
+
+####### Linear models###########################################################
+
+--------------------------------------------------------------------------------------------------------------------------------
+#For linear modeling we prefer OLS with untransformed discrete variables. Nevertheles residuals was checked each time to control OLS basic assumptions  
+-------------------------------------------------------------------------------------------------------------------------------
+
+lm1<-lm(Resharpenings~Shots, data=ppdat)
+lm1
+
+Call:
+lm(formula = Resharpenings ~ Shots, data = ppdat)
+
+Coefficients:
+(Intercept)        Shots  
+   -0.09591      0.02532  
+------------------------------------------------------------
+
+summary(lm1)
+
+
+Call:
+lm(formula = Resharpenings ~ Shots, data = ppdat)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.70212 -0.23331  0.01993  0.19041  0.85502 
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -0.095905   0.193897  -0.495    0.633    
+Shots        0.025324   0.002589   9.781  4.3e-06 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.4752 on 9 degrees of freedom
+Multiple R-squared:  0.914,     Adjusted R-squared:  0.9045 
+F-statistic: 95.66 on 1 and 9 DF,  p-value: 4.302e-06
+---------------------------------------------------------------
+##checking lm residuals
+
+shapiro.test(lm1$residuals)
+
+        Shapiro-Wilk normality test
+
+data:  lm1$residuals
+W = 0.97313, p-value = 0.9163
+
+---------------------------------------------------------------
+confint(lm1)# Confidence intervals of lm parameters
+
+                  2.5 %     97.5 %
+(Intercept) -0.53452955 0.34271945
+Shots        0.01946711 0.03118138
+
+
+---------------------------------------------------------------
+##plot lm
+
+ggplot(ppdat, aes(Shots, Resharpenings)) +
+  geom_point(size=3) + 
+  geom_smooth(method=lm, se=TRUE, fullrange=TRUE)
+
+---------------------------------------------------------------
+
+lm2<-lm(AnMaxIn~AnMaxFin, data=ppdat)
+lm2
+summary(lm2)
+
+Call:
+lm(formula = AnMaxIn ~ AnMaxFin, data = a)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1.6189 -1.3379 -0.5934  0.7548  3.7646 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   0.6500     4.5841   0.142 0.890374    
+AnMaxFin      1.0217     0.1564   6.535 0.000107 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1.732 on 9 degrees of freedom
+Multiple R-squared:  0.8259,    Adjusted R-squared:  0.8066 
+F-statistic:  42.7 on 1 and 9 DF,  p-value: 0.0001071
+--------------------------------------------------
+
+shapiro.test(lm2$residuals)
+
+Shapiro-Wilk normality test
+
+data:  lm2$residuals
+W = 0.87014, p-value = 0.07785
+--------------------------------------------------
+confint(lm2)
+                 2.5 %    97.5 %
+(Intercept) -9.7200585 11.019967
+AnMaxFin     0.6680174  1.375431
+--------------------------------------------------
+
+ggplot(ppdat, aes(WidMaxFin,  WidMaxIn)) +
+  geom_point(size=3) + 
+  geom_smooth(method=lm, se=TRUE, fullrange=TRUE)
+
+  
+##############Kaplan Meier estimates##########################################
+
+
+fitKM1<-survfit(Surv(Shots, Survival) ~1, data =ppdat)
+fitKM2<-survfit(Surv(Resharpenings, Survival) ~ 1, data =ppdat)
+
+summary(fitKM1) 
+Call: survfit(formula = Surv(Shots, Survival) ~ Type, data = ppdat)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    1     11       2   0.8182  0.1163       0.6192        1.000
+    3      9       1   0.7273  0.1343       0.5064        1.000
+    5      8       1   0.6364  0.1450       0.4071        0.995
+   11      7       1   0.5455  0.1501       0.3180        0.936
+   15      6       1   0.4545  0.1501       0.2379        0.868
+   49      5       1   0.3636  0.1450       0.1664        0.795
+   71      4       1   0.2727  0.1343       0.1039        0.716
+  110      3       1   0.1818  0.1163       0.0519        0.637
+  143      2       1   0.0909  0.0867       0.0140        0.589
+  146      1       1   0.0000     NaN           NA           NA
+
+
+summary(fitKM2)
+Call: survfit(formula = Surv(Resharpenings, Survival) ~ 1, data = ppdat)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    0     11       6   0.4545  0.1501        0.238        0.868
+    1      5       1   0.3636  0.1450        0.166        0.795
+    2      4       1   0.2727  0.1343        0.104        0.716
+    3      3       2   0.0909  0.0867        0.014        0.589
+    4      1       1   0.0000     NaN           NA           NA
+
+#####################plot###################################
+
+ggsurvplot(fitKM1, risk.table="nrisk_cumevents")
+ggsurvplot(fitKM2, risk.table="nrisk_cumevents")
+
+
+########################Box Cox model for covariates##########################################
+Note:
+The Cox model is expressed by the hazard function denoted by h(t). The hazard function can be interpreted as the risk of catastrophic failure of projectile point at time t. It can be estimated as follow:
+
+h(t)=h0(t)×exp(b1x1+b2x2+...+bpxp)
+
+t is the survival time
+h(t) is the hazard function determined by a set of p covariates (x1,x2,...,xp), in this case one covariate is fitted each at time, so it is a variable function.
+the coefficients (b1,b2,...,bp) measure the impact of covariates (in this case we fit one covariate at a time).
+the term h0 is called the baseline hazard. It corresponds to the value of the hazard if all the xi are equal to zero (the quantity exp(0) equals 1).
+
+####Box Cox model on Shots#######################
+
+fitCox1 <- coxph(Surv(Shots,Survival) ~WidNeck, data =ppdat)
+fitCox2 <- coxph(Surv(Shots,Survival) ~WidMaxIn, data =ppdat)
+
+summary(fitCox1)
+summary(fitCox2)
+
+##we use survfit function to extract "adjusted curve" in relation to each covariate (see below).
+summary(survfit(fitCox1))
+summary(survfit(fitCox2))
+
+summary(fitCox1)
+Call:
+coxph(formula = Surv(Shots, Survival) ~ WidNeck, data = ppdat)
+
+  n= 11, number of events= 11 
+
+           coef exp(coef) se(coef)      z Pr(>|z|)  
+WidNeck -0.4915    0.6117   0.1909 -2.575     0.01 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+        exp(coef) exp(-coef) lower .95 upper .95
+WidNeck    0.6117      1.635    0.4208    0.8893
+
+Concordance= 0.778  (se = 0.065 )
+Likelihood ratio test= 7.33  on 1 df,   p=0.007
+Wald test            = 6.63  on 1 df,   p=0.01
+Score (logrank) test = 8.32  on 1 df,   p=0.004
+
+summary(fitCox2)
+Call:
+coxph(formula = Surv(Shots, Survival) ~ WidMaxIn, data = ppdat)
+
+  n= 11, number of events= 11 
+
+            coef exp(coef) se(coef)      z Pr(>|z|)  
+WidMaxIn -0.2394    0.7871   0.1133 -2.112   0.0347 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+         exp(coef) exp(-coef) lower .95 upper .95
+WidMaxIn    0.7871       1.27    0.6303    0.9829
+
+Concordance= 0.741  (se = 0.052 )
+Likelihood ratio test= 5.13  on 1 df,   p=0.02
+Wald test            = 4.46  on 1 df,   p=0.03
+Score (logrank) test = 4.86  on 1 df,   p=0.03
+
+#Here it can be seen that survival probability increases when covariates are taking into account
+in particular in the first couple of shots
+
+summary(survfit(fitCox1))
+Call: survfit(formula = fitCox1)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    1     11       2  0.91646 0.07924     7.74e-01        1.000
+    3      9       1  0.82093 0.12152     6.14e-01        1.000
+    5      8       1  0.72646 0.14642     4.89e-01        1.000
+   11      7       1  0.57970 0.17137     3.25e-01        1.000
+   15      6       1  0.45194 0.17312     2.13e-01        0.958
+   49      5       1  0.31599 0.16480     1.14e-01        0.878
+   71      4       1  0.18239 0.14018     4.04e-02        0.823
+  110      3       1  0.05907 0.08849     3.13e-03        1.000
+  143      2       1  0.01365 0.03189     1.40e-04        1.000
+  146      1       1  0.00153 0.00537     1.59e-06        1.000
+
+summary(survfit(fitCox2))
+Call: survfit(formula = fitCox2)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    1     11       2   0.8777  0.0904     7.17e-01        1.000
+    3      9       1   0.8146  0.1141     6.19e-01        1.000
+    5      8       1   0.7428  0.1375     5.17e-01        1.000
+   11      7       1   0.6225  0.1588     3.78e-01        1.000
+   15      6       1   0.5050  0.1665     2.65e-01        0.964
+   49      5       1   0.3641  0.1660     1.49e-01        0.890
+   71      4       1   0.2192  0.1499     5.74e-02        0.837
+  110      3       1   0.0851  0.1074     7.18e-03        1.000
+  143      2       1   0.0265  0.0498     6.66e-04        1.000
+  146      1       1   0.0051  0.0136     2.74e-05        0.948
+
+
+####confidence intervals for the hazard function need to be first exponentiated exp()
+
+exp(confint(fitCox1))
+
+            2.5 %    97.5 %
+WidNeck 0.4208227 0.8892571
+
+exp(confint(fitCox2))
+
+             2.5 %    97.5 %
+WidMaxIn 0.6303269 0.9829384
+
+##Alternatively you can use the function ggforest() to plot confidence intervals of fitted Box Cox model (see ?ggforest)
+
+#####################Box Cox model on Resharpenings######################
+
+fitCox3 <- coxph( Surv(Resharpenings,Survival) ~WidNeck, data =ppdat)
+fitCox4 <- coxph( Surv(Resharpenings,Survival) ~WidMaxIn, data =ppdat)
+
+summary(fitCox3)
+
+
+Call:
+coxph(formula = Surv(Resharpenings, Survival) ~ WidNeck, data = ppdat)
+
+  n= 11, number of events= 11 
+
+           coef exp(coef) se(coef)     z Pr(>|z|)  
+WidNeck -0.3000    0.7408   0.1293 -2.32   0.0204 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+        exp(coef) exp(-coef) lower .95 upper .95
+WidNeck    0.7408       1.35    0.5749    0.9545
+
+Concordance= 0.821  (se = 0.093 )
+Likelihood ratio test= 4.8  on 1 df,   p=0.03
+Wald test            = 5.38  on 1 df,   p=0.02
+Score (logrank) test = 5.97  on 1 df,   p=0.01
+
+
+summary(fitCox4)
+
+
+Call:
+coxph(formula = Surv(Resharpenings, Survival) ~ WidMaxIn, data = ppdat)
+
+  n= 11, number of events= 11 
+
+            coef exp(coef) se(coef)     z Pr(>|z|)   
+WidMaxIn -0.2763    0.7586   0.1067 -2.59   0.0096 **
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+         exp(coef) exp(-coef) lower .95 upper .95
+WidMaxIn    0.7586      1.318    0.6154     0.935
+
+Concordance= 0.872  (se = 0.075 )
+Likelihood ratio test= 7.33  on 1 df,   p=0.007
+Wald test            = 6.71  on 1 df,   p=0.01
+Score (logrank) test = 7.11  on 1 df,   p=0.008
+
+--------------------------------------------------------------------------
+#Here it can be seen that survival probability increases when covariates are taking into account
+in particular in the first couple of resharpenings
+
+summary(survfit(fitCox3))
+Call: survfit(formula = fitCox3)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    0     11       6  0.51982  0.1631     2.81e-01        0.961
+    1      5       1  0.38550  0.1630     1.68e-01        0.883
+    2      4       1  0.25355  0.1493     8.00e-02        0.804
+    3      3       2  0.04103  0.0639     1.94e-03        0.870
+    4      1       1  0.00342  0.0112     5.65e-06        1.000
+
+--------------------------------------------------------------------------
+
+summary(survfit(fitCox4))
+Call: survfit(formula = fitCox4)
+
+ time n.risk n.event survival  std.err lower 95% CI upper 95% CI
+    0     11       6 5.48e-01 0.169178     2.99e-01        1.000
+    1      5       1 3.89e-01 0.174632     1.61e-01        0.938
+    2      4       1 2.37e-01 0.156455     6.51e-02        0.864
+    3      3       2 1.35e-02 0.033399     1.04e-04        1.000
+    4      1       1 9.77e-05 0.000668     1.49e-10        1.000
+
+
+####confidence intervals for the hazard function ############################
+ 
+exp(confint(fitCox3))
+            2.5 %    97.5 %
+WidNeck 0.5749303 0.9545451
+
+exp(confint(fitCox4))
+             2.5 %    97.5 %
+WidMaxIn 0.6153993 0.9350038
+
+
+
+###################Test for the proportional-hazards (PH) assumption for Box Cox regressions.
+
+
+cox.zph(fitCox1)
+          chisq df    p
+WidNeck 0.00899  1 0.92
+GLOBAL  0.00899  1 0.92
+
+---------------------------------
+
+cox.zph(fitCox2)
+           chisq df    p
+WidMaxIn 0.00593  1 0.94
+GLOBAL   0.00593  1 0.94
+
+---------------------------------
+
+cox.zph(fitCox3)
+        chisq df    p
+WidNeck  1.49  1 0.22
+GLOBAL   1.49  1 0.22
+
+---------------------------------
+
+cox.zph(fitCox4)
+         chisq df    p
+WidMaxIn 0.102  1 0.75
+GLOBAL   0.102  1 0.75
+
+----------------------------------
+
+#####plot three curves together for graphical comparison (NOT SHOWN) ########
+
+plot(fitKM1, conf.int=F, lwd=2)#kaplan meier sin covariables
+lines(survfit(fitCox1), col="blue",conf.int=F, lwd=2, lty=3)#nech width
+lines(survfit(fitCox2), col="red",conf.int=F, lwd=2, lty=2)#maximum initial width
+
+---------------------------
+
+plot(fitKM2, conf.int=F, lwd=2)#kaplan meier sin covariables
+lines(survfit(fitCox3), col="blue",conf.int=F, lwd=2, lty=3)#neck width
+lines(survfit(fitCox4), col="red",conf.int=F, lwd=2, lty=2)#maximum initial width
+
+
+##############Discard cause & metric attributes plot###################################
+
+par(mfrow=c(1,2))
+boxplot(ppdat$WidMaxIn~ppdat$CauseDisc, xlab="Cause of Discard")
+boxplot(ppdat$WidNeck~ppdat$CauseDisc, xlab="Cause of Discard")
+
+
+
+
