@@ -1,0 +1,113 @@
+#Script of: Functional efficiency and life history of Late Holocene lithic points
+#from Southern Patagonia: an experimental estimation using survival curves models.
+#contact:marcelo.cardillo@gmail.com
+
+
+#Base
+
+library(survminer)
+library(cmprsk)
+library(MASS)
+library(survival)
+library(ggplot2)
+library(flexsurv)
+
+ppdat<-read.table("Surv_data.txt",T)
+head(ppdat)
+
+
+
+#######linear models###########################################
+
+lm1<-lm(Resharpenings[1:10]~Shots[1:10], data=ppdat)
+lm1
+summary(lm1)
+
+lm2<-lm(Resharpenings[11:20]~Shots[11:20], data=ppdat)
+lm2
+summary(lm2)
+
+shapiro.test(lm1$residuals)
+shapiro.test(lm2$residuals)
+
+ggplot(ppdat, aes(x=log(Shots), y=Resharpenings, color=Type, shape=Type)) +
+  geom_point(size=3) + 
+  geom_smooth(method=lm, se=FALSE, fullrange=TRUE)
+
+###########Kaplan Meier estimates#############################################
+
+
+fitKM1<-survfit(Surv(Shots, Survival) ~ Type, data =ppdat)
+fitKM2<-survfit(Surv(Resharpenings, Survival) ~ Type, data =ppdat)
+
+summary(fitKM1) 
+summary(fitKM2)
+
+##plot
+
+ggsurvplot(fitKM1, risk.table="nrisk_cumevents")
+ggsurvplot(fitKM2, risk.table="nrisk_cumevents")
+
+########### Curve comparison with Harrington and Fleming (1982) test #############################################
+
+survdiff(Surv(Shots, Survival) ~ Type, data = ppdat)
+survdiff(Surv(Resharpenings, Survival) ~ Type, data = ppdat)
+
+
+####Weibull estimates on Shots################
+
+
+ s1 <- with(ppdat,Surv(Shots,Survival))
+
+ sWei1  <- flexsurvreg(s1[1:10] ~ 1, dist='weibull',data=ppdat)
+ sWei1
+
+#plot
+ plot(sWei1, ci=T, cl = 0.95,B = 10000,col.obs="blue")##weibull curve-not shown in the paper.
+    
+
+sWei2  <- flexsurvreg(s1[11:20] ~ 1,dist='weibull',data=ppdat)
+
+sWei2#extract parameters
+
+#plot
+
+ plot(sWei2, ci=T, cl = 0.95,B = 10000,col.obs="blue")##weibull curve-not shown in the paper.
+
+
+
+####Weibull estimates on Resharpenings################
+
+##Weibull fit on Resharpenings needs non-zero values, so a constant (1) was added to data
+##this constant must then be subtracted from the estimate (scale parameter)
+
+ppdat$Resharpenings_1<-ppdat$Resharpenings+1
+
+s2 <- with(ppdat,Surv(Resharpenings_1,Survival))
+
+sWei3  <- flexsurvreg(s2[1:10] ~ 1,dist='weibull',data=ppdat)
+sWei3#extract parameters
+
+#plot
+
+ plot(sWei3, ci=T, cl = 0.95,B = 10000,col.obs="blue")##weibull curve-not shown in the paper.
+
+
+sWei4  <- flexsurvreg(s2[11:20] ~ 1,dist='weibull',data=ppdat)
+
+sWei4#extract parameters
+
+#plot
+
+plot(sWei4, ci=T, cl = 0.95,B = 10000,col.obs="blue")##weibull curve-not shown in the paper.
+
+
+
+####################Comparison between types using Weibull fit########
+
+IV_V_Shots<-survreg(Surv(Shots, Survival) ~ Type, data=ppdat,dist='weibull')
+
+IV_V_Resharpenings<-survreg(Surv(Resharpenings_1, Survival) ~ Type, data=ppdat,dist='weibull')
+
+summary(IV_V_Shots)
+summary(IV_Resharpenings)
