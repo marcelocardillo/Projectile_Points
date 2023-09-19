@@ -1,0 +1,410 @@
+#Explaining the diversification of lithic projectile points from the northern Patagonian #coast (Argentina) during the Holocene using phylogenetic and comparative methods
+Marcelo Cardillo and Jimena Alberti. 2023.
+##For comments or suggestions please contact marcelo.cardillo@gmail.com
+
+#packages phylogenetic analysis
+library(ape)
+library(geiger)
+library(dplyr)
+library(MuMIn)
+library(phytools)
+
+
+##data
+tree<-read.tree("Nptree.tre")#base tree
+Weight<-read.table("Weight.txt", T, row.names=1)
+Weight2<- Weight %>% slice(-1)#remove OG for model fitting (see below)
+
+##Tree transformation
+tree1<-compute.brlen(tree, method="Grafen")#compute treelengh with Graffen method
+plot(tree1)##not shown
+axisPhylo()##not shown
+##
+Tree2<-drop.tip(tree1,1)# drop the OG to use the ingroup only (see Harmon 2018)
+##in this case The outgroup was excluded from the analysis as 
+#it was initially used to polarize the phylogeny.
+
+plot(Tree2)#not shown
+
+##create a treedata object with geiger
+tredat<- treedata(Tree2, Weight2)
+WSE<-sd(Weight2$W)/sqrt(11)#estimate the standar error of the weight variable to use in the fitting processes
+WSE##check
+
+###run the four models with defauls conditions and estimated SE of weight. Se below for more details
+
+BWM <- fitContinuous(tredat$phy, tredat$data[,"W"], SE=WSE, control=list(niter=1000), ncores=2,  model = c("BM"))
+WT<-  fitContinuous(tredat$phy, tredat$data[,"W"], SE=WSE, control=list(niter=1000), ncores=2,  model = c("white"))
+OUM <- fitContinuous(tredat$phy, tredat$data[,"W"], SE=WSE, control=list(niter=1000), ncores=2,  model = c("OU"))
+EBM <- fitContinuous(tredat$phy, tredat$data[,"W"], SE=WSE, control=list(niter=1000), ncores=2,  model = c("EB"))
+
+###Results #### not shown
+BWM
+# GEIGER-fitted comparative model of continuous data
+# fitted ‘BM’ model parameters:
+#   sigsq = 46.861734
+# z0 = 8.118616
+# 
+# model summary:
+#   log-likelihood = -32.937635
+# AIC = 69.875270
+# AICc = 71.375270##We use corrected AIC for estimate weighted AIC function
+# free parameters = 2
+# 
+# Convergence diagnostics:
+#   optimization iterations = 1000
+# failed iterations = 0
+# number of iterations with same best fit = 1000
+# frequency of best fit = 1.000
+# 
+# object summary:
+#   'lik' -- likelihood function
+# 'bnd' -- bounds for likelihood search
+# 'res' -- optimization iteration summary
+# 'opt' -- maximum likelihood parameter estimates
+################
+WT
+# GEIGER-fitted comparative model of continuous data
+# fitted ‘white’ model parameters:
+#   sigsq = 49.685578
+# z0 = 7.936364
+# 
+# model summary:
+#   log-likelihood = -37.574941
+# AIC = 79.149883
+# AICc = 80.649883
+# free parameters = 2
+# 
+# Convergence diagnostics:
+#   optimization iterations = 1000
+# failed iterations = 0
+# number of iterations with same best fit = 1000
+# frequency of best fit = 1.000
+# 
+# object summary:
+#   'lik' -- likelihood function
+# 'bnd' -- bounds for likelihood search
+# 'res' -- optimization iteration summary
+# 'opt' -- maximum likelihood parameter estimates
+#########################
+OUM
+# GEIGER-fitted comparative model of continuous data
+# fitted ‘OU’ model parameters:
+#   alpha = 0.000000
+# sigsq = 46.861734
+# z0 = 8.118616
+# 
+# model summary:
+#   log-likelihood = -32.937635
+# AIC = 71.875270
+# AICc = 75.303841
+# free parameters = 3
+# 
+# Convergence diagnostics:
+#   optimization iterations = 1000
+# failed iterations = 0
+# number of iterations with same best fit = 395
+# frequency of best fit = 0.395
+# 
+# object summary:
+#   'lik' -- likelihood function
+# 'bnd' -- bounds for likelihood search
+# 'res' -- optimization iteration summary
+# 'opt' -- maximum likelihood parameter estimates
+###############
+EBM
+# GEIGER-fitted comparative model of continuous data
+# fitted ‘EB’ model parameters:
+#   a = -1.008865
+# sigsq = 86.312993
+# z0 = 8.274284
+# 
+# model summary:
+#   log-likelihood = -32.861919
+# AIC = 71.723838
+# AICc = 75.152409
+# free parameters = 3
+# 
+# Convergence diagnostics:
+#   optimization iterations = 1000
+# failed iterations = 0
+# number of iterations with same best fit = 161
+# frequency of best fit = 0.161
+# 
+# object summary:
+#   'lik' -- likelihood function
+# 'bnd' -- bounds for likelihood search
+# 'res' -- optimization iteration summary
+# 'opt' -- maximum likelihood parameter estimates
+
+
+##########About the code #########################
+
+
+# fitContinuous: function from the geiger package is used to fit a continuous
+# trait evolution model to a phylogenetic tree.
+# 1-tredat$phy: phylogenetic tree object stored in the "tredat" dataset. 
+# 2-tredat$data[,"W"]: refers to the trait data associated with the point classes. 
+# 3-SE=WSE: specifies the standard error associated with the trait data. 
+# It is provided as `WSE` in this code.
+# 4-control=list(niter=1000): the control parameters for the fitting process.##default
+# In this case, it specifies that the number of iterations for each model should be 1000.
+#5-ncores=2: the number of processor cores to be used for parallel computation. this a default
+#6-model = c(" "): specifies the evolutionary model to be used.##note that default parameters was used for fitting models##
+
+
+### AICC for each simulation and weights###############
+
+Waic<-rbind(BWM$opt$aicc,WT$opt$aicc, OUM$opt$aicc,EBM$opt$aicc)
+Weights(Waic)#MuMIn package
+
+# model weights 
+# [,1] 
+# [1,] 0.77 # higher values indicates better fit for the BM
+# [2,] 0.000
+# [3,] 0.108
+# [4,] 0.119
+
+
+################ About the code######################
+
+  
+# The MuMIn package  provides functions for model selection and multimodel inference. 
+# In this specific code, the "Waic" variable is created as a matrix using the "rbind" function.
+# It combines the Akaike Information Criterion with a correction for small sample sizes (AICc) values obtained from different models: BWM, WT, DFT, OUM, and EBM. 
+# The "Weights" function from the MuMIn package is used to calculate the model weights from the matrix. The "Weights" function computes the relative support or weight for each model based on the provided AICc values.
+#Greater weighted values suggest better fit.
+
+
+###########Simulations based on the best model (the BM model)#############
+
+# we run a simulation of the Brownian model under pure random walk and 
+# with the trend hypothesis (see text) and de code explanation below
+# Here, we use the "rnorm"in order to generate random numbers from a normal distribution with a specified mean #and standard deviation. In the context of the Brownian model, the mean is typically set to 0 since the model #assumes no systematic trend (random walk), and the standard deviation is used to control the magnitude of the random fluctuations.
+
+# Boundary condition for BM without trend
+
+set.seed(1973)
+sim_number1 <- 10000
+time1 <- -6000:0
+initial_value1 <- 5
+min_value1 <- 0.2
+max_val1 <- 23
+
+# Run BM
+
+realizations1 <- matrix(NA, nrow = sim_number1, ncol = length(time1))
+
+for (i in 1:sim_number1) {
+  delta1 <- rnorm(length(time1), mean = 0, sd = sqrt(time1[2] - time1[1]))
+  change1 <- cumsum(delta1)
+  actual_value1 <- initial_value1 + change1
+  actual_value1 <- pmin(max_val1, pmax(min_value1, actual_value1))
+  realizations1[i, ] <- actual_value1
+}
+
+
+# Mean of the simulations for each step
+mean_simul1 <- apply(realizations1, 2, mean)
+
+#########Plot curves#####################
+
+p1<-plot(time1, mean_simul1, type = "l", xlab = "Time", ylab = "Weight",
+         main = "BM simulations without trend")
+
+
+########Brownian model with trend######### 
+
+
+set.seed(1973)
+sim_number <- 10000
+duration <- 6000
+initial_value <- 5
+min_value <- 0.2
+max_value <- 23
+time <- seq(-duration, 0, length.out = 100)
+trend <- c(-0.001, -0.002, -0.003, -0.004, -0.005)
+
+mean_curves <- matrix(NA, nrow = length(trend), ncol = length(time))
+
+for (i in 1:length(trend)) {
+  trend_time <- trend[i] * (time - time[1]) + initial_value
+  realizations <- matrix(NA, nrow = sim_number, ncol = length(time))
+  
+  for (j in 1:sim_number) {
+    realizations[j, ] <- cumsum(rnorm(length(time), mean = 0, sd = 1)) + trend_time
+    realizations[j, ] <- pmax(min_value, pmin(max_value, realizations[j, ]))
+  }
+  
+  mean_curves[i, ] <- apply(realizations, 2, mean)
+}
+
+#########Plot curves##############################
+
+plot(time, mean_curves[1, ], type = "l", col = 1, ylim = c(min(mean_curves), max(mean_curves)), xlab = "Time", ylab = "Weight", main = "Brownian Model with a trend")
+for (i in 2:length(trend)) {
+  lines(time, mean_curves[i, ], col = i)
+}
+legend("topright", legend = paste("Trend:", trend), col = 1:length(trend), lty = 1, cex = 0.6)
+
+abline(h=3, lty=2, col="red")
+abline(v=-1500,lty=2, col="blue")
+
+
+
+################################################
+################################################
+#####About the simulation code################## 
+# 1. sim_number <- 10000: This line sets the number of simulations to 10.000. It means that the subsequent steps will be repeated 10,000 times to generate multiple realizations of the Brownian motion process.
+# 2. duration <- 6000: This line sets the duration of the process to 6000 time units. It represents the length of time over which the process evolves.
+# 3. initial_value <- 5: This line sets the initial value of the process to 5. It represents the starting point of the process at time 0.
+# 4. min_value <- 0.2: This line sets the minimum value that the process can take. Any values below this threshold will be replaced with the minimum value.
+# 5. max_val <- 23: This line sets the maximum value that the process can take. Any values above this threshold will be replaced with the maximum value.
+# 6. time <- seq(-duration, 0, length.out = 100): Sequence of time points from -6000 to 0, with 100 equally spaced intervals. It represents the time axis over which the process will be simulated.
+# 7.realizations <- matrix(NA, nrow = sim_number, ncol = length(time)): This line creates an empty matrix with dimensions (sim_number2, length(time2)). It will store the simulated realizations of the process.
+# 8. trend <- -0.005: sets the trend of the process. It represents the direction and magnitude of the linear trend component added to the process. In this case, the trend is set to -0.005, indicating a decreasing trend over time.
+# 9. for (i in 1:sim_number) { ... }: a loop that iterates over each simulation.
+# 10. trend_time <- trend * (time - time[1]) + initial_value2: This line calculates the trend component of the process at each time point. It is obtained by multiplying the trend value by the time difference from the first time point and adding the initial value.
+# 11. realizations[i, ] <- cumsum(rnorm(length(time), mean = 0, sd = 1)) + trend_time: This line generates a realization of the Brownian motion process with a trend. Here we use the "rnorm" function to generate a sequence of normally distributed random numbers, which are cumulatively summed to simulate the Brownian motion component. The trend component is added to the process.
+# 12. realizations[i, ] <- pmax(min_value, pmin(max_val, realizations[i, ])): This line applies the minimum and maximum value constraints to the simulated process. It ensures that the values of the process stay within the defined range.
+# 13. mean_simul <- apply(realizations, 2, mean): This line calculates the mean value of each column (time point) in the "realizations" matrix. It represents the average trajectory of the simulated process.
+# 14. standar_err <- apply(realizations, 2, sd) / sqrt(sim_number): This code line calculates the standard error of the mean for each column (time point) in the "realizations" matrix. Wich represents the uncertainty or variability of the mean estimate.
+
+
+######################
+# Count the number of simulations reaching the minimum and maximum thresholds for BM
+
+reached_min <- sum(apply(realizations1, 2, function(x) any(x <= min_value1)))
+reached_max <- sum(apply(realizations1, 2, function(x) any(x >= max_val1)))
+
+# Print the results
+cat("Number of simulations reaching the minimum threshold:", reached_min, "\n")
+#Number of simulations reaching the minimum threshold: 6000 
+
+cat("Number of simulations reaching the maximum threshold:", reached_max, "\n")
+#Number of simulations reaching the maximum threshold: 5981  
+
+#####################
+####################
+
+# Estimate the time steps to boundary values form BM model without trend
+times_min <- which(realizations1 <= min_value1, arr.ind = TRUE)[, "col"]
+times_max <- which(realizations1 >= max_val1, arr.ind = TRUE)[, "col"]
+
+#Mann-Whitney on median time to boundary values
+ Wtest<-wilcox.test(times_min, times_max)
+ # Wilcoxon rank sum test with continuity correction
+ # 
+ # data:  times_min and times_max
+ # W = 2.5194e+14, p-value < 2.2e-16
+ # alternative hypothesis: true location shift is not equal to 0
+ 
+######################################################################
+########### Time to simulation boundaries##############################
+   
+# Count the number of sim boundaries
+reached_min <- colSums(realizations1 <= min_value1)
+reached_max <- colSums(realizations1 >= max_val1)
+
+# create a time vector
+time <- seq(-6000, 0)
+
+#Plot time to boundaries
+
+plot(time, reached_min, type = "l", col = "blue", xlab = "Time", ylab = "Numer of realizations of BM", 
+     main = "Time to simulation boundaries", ylim = c(0, sim_number1))
+lines(time, reached_max, col = "red")
+legend("topright", legend = c("minimum boundary (0.2 g)", "maximum boundary (23 g)"), 
+       col = c("blue", "red"), lty = 1)
+
+##median steps to boundaries
+tmin <- median(times_min)
+# [1] 3100
+tmax <- median(times_max)
+# [1] 3424
+
+abline(h = tmin, lty = 2, col = "blue")
+abline(h = tmax, lty = 2, col = "red")
+
+################### Shape analysis#############
+#packages for shape analysis
+
+library(Momocs)
+library(geomorph)
+library(ggplot2)
+
+PPNP<-readland.tps("NPP.tps",specID ="ID")# read tps file with geomorph
+
+PPNPOut<-Out(PPNP)·creat an outline object in Momocs
+
+fix(PPNPOut)##we prefer change case labelling manually (optional)
+
+calibrate_harmonicpower_efourier(PPNPOut,thresh =99, plot=F)$minh ##estimate the minimun number of harmonics to get a 99% power
+
+PPNP_Fourier<- efourier(PPNPOut, nb.h=10, norm=T)#Elliptic Fourier with normalization for posicion, rotation and size
+
+PPNP_Fourier_PC<-PCA(PPNP_Fourier)#PCA
+
+plot(PPNP_Fourier_PC,rotate.shp=1.5,cex=2, size.shp =1.4, rug=F, lwd.shp = 2,axisnames =F,axisvar =F)
+##the published plot was further edited in other program
+
+
+PCS=PPNP_Fourier_PC$x[,1:2]# extract two first PCs
+head(PCS)
+
+######Plot tree into shape space################
+
+Var=cbind(PCS,Weight)
+phylomorphospace3d(tree1, Var,method="static", cex=0.1)
+##the published plot was further edited in other program
+
+
+################# gls Regression between PCs and Weight##########
+
+lmShape_Weight1=lm(PCS[,1]~log(Weight$W))
+summary(lmShape_Weight1)
+# Call:
+#   lm(formula = PCS[, 1] ~ log(Weight$W))
+# 
+# Residuals:
+#   Min       1Q   Median       3Q      Max 
+# -0.10049 -0.06592 -0.01926  0.06914  0.15624 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)  
+# (Intercept)    0.06053    0.03444   1.757   0.1094  
+# log(Weight$W) -0.04481    0.01753  -2.557   0.0285 *
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.08667 on 10 degrees of freedom
+# Multiple R-squared:  0.3954,	Adjusted R-squared:  0.3349 
+# F-statistic: 6.539 on 1 and 10 DF,  p-value: 0.02851
+
+
+####
+plot(PCS[,1]~log(Weight$W))##not shown
+abline(lmShape_Weight1, col="red")
+
+################## PC2 vs Weight##################
+lmShape_Weight2=lm(PCS[,2]~log(Weight$W))
+summary(lmShape_Weight2)
+# Call:
+#   lm(formula = PCS[, 2] ~ log(Weight$W))
+# 
+# Residuals:
+#   Min        1Q    Median        3Q       Max 
+# -0.092767 -0.055020  0.004716  0.050714  0.100289 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)
+# (Intercept)    0.01622    0.02746   0.591    0.568
+# log(Weight$W) -0.01201    0.01397  -0.859    0.410
+# 
+# Residual standard error: 0.06911 on 10 degrees of freedom
+# Multiple R-squared:  0.06879,	Adjusted R-squared:  -0.02433 
+# F-statistic: 0.7387 on 1 and 10 DF,  p-value: 0.4102
+
+####
+plot(PCS[,2]~log(Weight$W))##not shown
+abline(lmShape_Weight2, col="red")
