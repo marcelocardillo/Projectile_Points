@@ -1,1 +1,81 @@
-marcelocardillo/https---github-com-marcelocardillo-projectile-points-fracture
+library(shiny)
+
+ui <- fluidPage(
+  titlePanel("Cálculo de Probabilidad de Fractura Catastrófica"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("simulaciones", "Cantidad de Simulaciones:", min = 1000, max = 100000, value = 10000),
+      sliderInput("replicas", "Número de Réplicas:", min = 1, max = 100, value = 100),
+      sliderInput("tiros_interes", "Número de Tiros de Interés:", min = 1, max = 1000, value = 20),
+      sliderInput("min_uniforme", "Valor Mínimo de Distribución Uniforme:", min = 0, max = 1, value = 0.02, step = 0.01),
+      sliderInput("max_uniforme", "Valor Máximo de Distribución Uniforme:", min = 0, max = 1, value = 0.44, step = 0.01),
+      actionButton("calcular", "Calcular Probabilidad"),
+      helpText("Ingrese la cantidad de simulaciones, el número de réplicas, el número de tiros de interés y los valores mínimo y máximo de la distribución uniforme.")
+    ),
+    mainPanel(
+      plotOutput("posterior_plot"),
+      textOutput("media_probabilidad")
+    )
+  )
+)
+
+server <- function(input, output) {
+  observeEvent(input$calcular, {
+    cantidad_simulaciones <- input$simulaciones
+    numero_replicas <- input$replicas
+    tiros_interes <- input$tiros_interes
+    min_uniforme <- input$min_uniforme
+    max_uniforme <- input$max_uniforme
+    
+    # Usando la distribución uniforme para generar probabilidades de fractura
+    probfractura <- runif(cantidad_simulaciones, min = min_uniforme, max = max_uniforme)
+    
+    # Generar datos de tiros usando la distribución binomial
+    tiros <- rbinom(n = cantidad_simulaciones, size = numero_replicas, prob = probfractura)
+    
+    # Crear un data frame uniendo probabilidad de fractura y número de tiros
+    prior <- data.frame(probfractura, tiros)
+    
+    # Estimación de la distribución a posteriori para la probabilidad de fractura catastrófica en relación a n tiros
+    posterior_tiros <- prior[prior$tiros == tiros_interes, ]
+    
+    # Calcular la media de la probabilidad de fractura catastrófica en tiros_interes tiros
+    mean_probabilidad_fractura <- mean(posterior_tiros$probfractura)
+    
+    # Calcular los percentiles 2.5 y 97.5
+    percentil2.5 <- quantile(posterior_tiros$probfractura, 0.025)
+    percentil97.5 <- quantile(posterior_tiros$probfractura, 0.975)
+    
+    # Visualizar la distribución posterior si hay al menos 2 puntos de datos
+    if (nrow(posterior_tiros) >= 2) {
+      output$posterior_plot <- renderPlot({
+        density_plot <- density(posterior_tiros$probfractura)
+        plot(density_plot, main = "Distribución a Posteriori",
+             xlab = "Probabilidad de Fractura Catastrófica", ylab = "Densidad")
+        
+        # Agregar líneas punteadas para la media y los percentiles
+        abline(v = mean_probabilidad_fractura, col = "red", lty = 2)
+        abline(v = percentil2.5, col = "blue", lty = 2)
+        abline(v = percentil97.5, col = "blue", lty = 2)
+        
+        # Agregar texto en el pie del gráfico
+        text(mean_probabilidad_fractura, 0, labels = paste("Media:", round(mean_probabilidad_fractura, 4)), pos = 3, col = "red")
+        text(percentil2.5, 0, labels = paste("Percentil 2.5:", round(percentil2.5, 4)), pos = 3, col = "blue")
+        text(percentil97.5, 0, labels = paste("Percentil 97.5:", round(percentil97.5, 4)), pos = 3, col = "blue")
+      })
+    } else {
+      output$posterior_plot <- renderPlot({
+        plot(NA, xlim = c(0, 1), ylim = c(0, 1), xlab = "Probabilidad de Fractura Catastrófica", 
+             ylab = "Densidad", main = "Distribución a Posteriori")
+      })
+    }
+    
+    # Mostrar la media de la probabilidad de fractura
+    output$media_probabilidad <- renderText({
+      paste("Media de la probabilidad de fractura catastrófica en", tiros_interes, "tiros:",
+            round(mean_probabilidad_fractura, 4))
+    })
+  })
+}
+
+shinyApp(ui = ui, server = server)
