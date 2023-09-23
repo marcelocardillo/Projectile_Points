@@ -1,3 +1,5 @@
 plotly==5.3.1
 streamlit==1.9.0
-numpy==1.21.2  # Asegúrate de incluir otras dependencias si las tienes
+numpy==1.21.2 
+matplotlib.pyplot==3.8.0
+scipy.stats==1.11.2
