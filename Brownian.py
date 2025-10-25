@@ -67,3 +67,5 @@ if st.button('Ejecutar simulación'):
     
     st.plotly_chart(fig, use_container_width=True)
     st.success("Simulación completada correctamente.")
+    st.write("Elaboración: Marcelo Cardillo, Prof. Adjunto de ELEMENTOS DE ANTROPOLOGÍA Y ARQUEOLOGÍA EVOLUTIVA, Facultad de Filosofía y Letras, Universidad de Buenos Aires.")
+
